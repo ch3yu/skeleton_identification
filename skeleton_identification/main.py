@@ -1,6 +1,7 @@
 import cv2
 import argparse
 import pykinect_azure as pykinect
+import json
 
 if __name__ == "__main__":
     # Parse command line arguments
@@ -24,10 +25,13 @@ if __name__ == "__main__":
     pykinect.initialize_libraries(track_body=True)
 
     if mode == "record":
-        device_config = pykinect.default_configuration
-        device_config.color_format = pykinect.K4A_IMAGE_FORMAT_COLOR_BGRA32
-        device_config.color_resolution = pykinect.K4A_COLOR_RESOLUTION_1080P
-        device_config.depth_mode = pykinect.K4A_DEPTH_MODE_WFOV_2X2BINNED
+        with open(r".\\device_config.json", 'r') as file:
+            device_config_param = json.load(file)
+            
+        device_config = eval(device_config_param["default_configuration"])
+        device_config.color_format = eval(device_config_param["color_format"])
+        device_config.color_resolution = eval(device_config_param["color_resolution"])
+        device_config.depth_mode = eval(device_config_param["depth_mode"])
         device = pykinect.start_device(config=device_config, record=True, record_filepath=path_to_vid)
         
         tracker_config = pykinect.k4abt._k4abtTypes.k4abt_tracker_default_configuration

@@ -1,0 +1,6 @@
+{
+	"default_configuration": "pykinect.default_configuration",
+	"color_format": "pykinect.K4A_IMAGE_FORMAT_COLOR_BGRA32",
+	"color_resolution": "pykinect.K4A_COLOR_RESOLUTION_1080P",
+	"depth_mode": "pykinect.K4A_DEPTH_MODE_WFOV_2X2BINNED"
+}
