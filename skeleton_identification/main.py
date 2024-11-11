@@ -12,6 +12,11 @@ if __name__ == "__main__":
     mode = args.mode
     path_to_vid = args.path_to_vid
 
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    fontScale = 1
+    color = (0, 0, 255)
+    thickness = 2
+
     if mode != "record" and mode != "offline":
         print("The program does not support {mode} mode.\nPlease input either <record> or <offline>.".format(mode=mode))
 
@@ -51,7 +56,14 @@ if __name__ == "__main__":
 
         color_image = body_frame.draw_bodies(color_image)
 
-        cv2.imshow('Color image with skeleton', color_image)
+        num_bodies = body_frame.get_num_bodies()
+        for body_idx in range(num_bodies):
+            body_id = body_frame.get_body_id(body_idx)
+            body_2d = body_frame.get_body2d(body_idx)
+            text_coord = body_2d.joints[pykinect.k4abt._k4abtTypes.K4ABT_JOINT_NECK].get_coordinates()
+            color_image = cv2.putText(color_image, str(body_id), text_coord, font, fontScale, color, thickness, cv2.LINE_AA)
+
+            cv2.imshow('Color image with skeleton', color_image)
 
         if cv2.waitKey(1) == ord('q'):
             break
