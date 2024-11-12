@@ -42,5 +42,6 @@ if __name__ == "__main__":
 		cv2.imshow('Color image',color_image)
 		
 		# Press q key to stop
-		if cv2.waitKey(1) == ord('q'):  
+		if cv2.waitKey(1) == ord('q'):
+			print("The recording is terminated by user.")
 			break

@@ -70,4 +70,5 @@ if __name__ == "__main__":
             cv2.imshow('Color image with skeleton', color_image)
 
         if cv2.waitKey(1) == ord('q'):
+            print("The recording is terminated by user.")
             break
