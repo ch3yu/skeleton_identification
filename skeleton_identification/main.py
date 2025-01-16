@@ -2,6 +2,8 @@ import cv2
 import argparse
 import pykinect_azure as pykinect
 import json
+import helper as helper
+import numpy as np
 
 if __name__ == "__main__":
     # Parse command line arguments
@@ -14,7 +16,7 @@ if __name__ == "__main__":
     path_to_vid = args.path_to_vid
 
     font = cv2.FONT_HERSHEY_SIMPLEX
-    fontScale = 1
+    fontScale = 0.5
     color = (0, 0, 255)
     thickness = 2
 
@@ -34,41 +36,84 @@ if __name__ == "__main__":
         device_config.depth_mode = eval(device_config_param["depth_mode"])
         device = pykinect.start_device(config=device_config, record=True, record_filepath=path_to_vid)
         
-        tracker_config = pykinect.k4abt._k4abtTypes.k4abt_tracker_default_configuration
+        tracker_config = pykinect.default_tracker_configuration
         tracker_config.sensor_orientation = pykinect.K4ABT_SENSOR_ORIENTATION_DEFAULT
         tracker_config.tracker_processing_mode = pykinect.K4ABT_TRACKER_PROCESSING_MODE_GPU
         tracker_config.gpu_device_id = 0
         bodyTracker = pykinect.start_body_tracker()
-
+        
     elif mode == "offline":
         device = pykinect.start_playback(path_to_vid)
         device_config = device.get_record_configuration()
         device_calibration = device.get_calibration()
-        bodyTracker = pykinect.start_body_tracker(calibration=device_calibration)
+        tracker_config = pykinect.default_tracker_configuration
+        tracker_config.tracker_processing_mode =pykinect.K4ABT_TRACKER_PROCESSING_MODE_GPU
+        bodyTracker = pykinect.start_body_tracker(calibration=device_calibration, tracker_configuration=tracker_config)
 
     cv2.namedWindow("Color image with skeleton", cv2.WINDOW_NORMAL)
 
+    frame = 0
     while True:
-        capture = device.update()
+        if mode == "record":
+            capture = device.update()
 
-        body_frame = bodyTracker.update(capture=capture)
+            body_frame = bodyTracker.update(capture=capture)
 
-        ret_color, color_image = capture.get_transformed_color_image()
+            ret_color, color_image = capture.get_transformed_color_image()
 
-        if not ret_color:
-            continue
+            if not ret_color:
+                continue
 
-        color_image = body_frame.draw_bodies(color_image)
+            color_image = body_frame.draw_bodies(color_image)
 
-        num_bodies = body_frame.get_num_bodies()
-        for body_idx in range(num_bodies):
-            body_id = body_frame.get_body_id(body_idx)
-            body_2d = body_frame.get_body2d(body_idx)
-            text_coord = body_2d.joints[pykinect.k4abt._k4abtTypes.K4ABT_JOINT_NECK].get_coordinates()
-            color_image = cv2.putText(color_image, str(body_id), text_coord, font, fontScale, color, thickness, cv2.LINE_AA)
+            num_bodies = body_frame.get_num_bodies()
+            for body_idx in range(num_bodies):
+                body_id = body_frame.get_body_id(body_idx)
+                body_2d = body_frame.get_body2d(body_idx)
 
-            cv2.imshow('Color image with skeleton', color_image)
+                text_coord = body_2d.joints[pykinect.k4abt._k4abtTypes.K4ABT_JOINT_NECK].get_coordinates()
+                color_image = cv2.putText(color_image, str(body_id), text_coord, font, fontScale, color, thickness, cv2.LINE_AA)
 
-        if cv2.waitKey(1) == ord('q'):
-            print("The recording is terminated by user.")
-            break
+                cv2.imshow('Color image with skeleton', color_image)
+
+            if cv2.waitKey(1) == ord('q'):
+                print("The recording is terminated by user.")
+                break
+
+        elif mode == "offline":
+            ret, capture = device.update()
+
+            if not ret:
+                break
+
+            body_frame = bodyTracker.update(capture=capture)
+
+            ret_color, color_image = capture.get_transformed_color_image()
+            timestamp = pykinect.k4a._k4a.k4a_image_get_timestamp_usec(capture.get_color_image_object().handle())
+
+            if not ret_color:
+                continue
+
+            color_image = body_frame.draw_bodies(color_image)
+
+            id_features = np.load(f"id_features_{path_to_vid[0:-4]}.npy")
+
+            num_bodies = body_frame.get_num_bodies()
+            for body_idx in range(num_bodies):
+                skeleton = body_frame.get_body_skeleton(body_idx)
+                features = helper.calculate_features(skeleton)
+                
+                body_id = helper.find_closest_match(features, id_features[:, :, frame], threshold=0.05)
+                body_2d = body_frame.get_body2d(body_idx)
+                
+                timestamp_coord = [10, 20]
+                text_coord = body_2d.joints[pykinect.k4abt._k4abtTypes.K4ABT_JOINT_NECK].get_coordinates()
+                color_image = cv2.putText(color_image, str(body_id), text_coord, font, fontScale, color, thickness, cv2.LINE_AA)
+                color_image = cv2.putText(color_image, str(timestamp), timestamp_coord, font, fontScale, color, thickness, cv2.LINE_AA)
+
+                cv2.imshow('Color image with skeleton', color_image)
+            frame = frame + 1
+
+            if cv2.waitKey(1) == ord('q'):
+                print("The recording is terminated by user.")
+                break

@@ -1,1 +1,4 @@
 .env/
+/skeleton_identification/test_1.mkv
+/skeleton_identification/test.mkv
+/skeleton_identification/id_features_test.npy
