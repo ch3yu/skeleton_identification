@@ -4,6 +4,7 @@ import pykinect_azure as pykinect
 import json
 import helper as helper
 import numpy as np
+import ctypes
 
 if __name__ == "__main__":
     # Parse command line arguments
@@ -87,8 +88,22 @@ if __name__ == "__main__":
                 break
 
             body_frame = bodyTracker.update(capture=capture)
+            
+            color_image_object = capture.get_color_image_object()
+            color_format = color_image_object.get_format()
+            if color_format != pykinect.k4a._k4atypes.K4A_IMAGE_FORMAT_COLOR_BGRA32:
+                _, m = color_image_object.to_numpy()
+                bgra = cv2.cvtColor(m, cv2.COLOR_BGR2BGRA)
+                bgra_image_handle = pykinect.k4a._k4a.k4a_image_t()
+                image_format = pykinect.k4a._k4a.K4A_IMAGE_FORMAT_COLOR_BGRA32
+                buffer = bgra.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
+                pykinect.k4a._k4a.VERIFY(pykinect.k4a._k4a.k4a_image_create_from_buffer(image_format, bgra.shape[1], bgra.shape[0], bgra.shape[1]*4, buffer, bgra.nbytes, ctypes.c_void_p(0), ctypes.c_void_p(0), bgra_image_handle), "MJPG to BGRA32 ERROR")
+                color_image_object = pykinect.k4a.Image(bgra_image_handle)
 
-            ret_color, color_image = capture.get_transformed_color_image()
+                ret_color, color_image = capture.camera_transform.color_image_to_depth_camera(capture.get_depth_image_object(), color_image_object).to_numpy()
+            else:
+                ret_color, color_image = capture.get_transformed_color_image()
+
             timestamp = pykinect.k4a._k4a.k4a_image_get_timestamp_usec(capture.get_color_image_object().handle())
 
             if not ret_color:

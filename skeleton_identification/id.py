@@ -3,6 +3,7 @@ import argparse
 import pykinect_azure as pykinect
 import helper
 import numpy as np
+import os
 
 if __name__ == "__main__":
     pykinect.initialize_libraries(track_body=True)
