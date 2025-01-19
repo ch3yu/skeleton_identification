@@ -92,6 +92,7 @@ if __name__ == "__main__":
             color_image_object = capture.get_color_image_object()
             color_format = color_image_object.get_format()
             if color_format != pykinect.k4a._k4atypes.K4A_IMAGE_FORMAT_COLOR_BGRA32:
+                # Adapted from https://github.com/ibaiGorordo/pyKinectAzure/issues/107
                 _, m = color_image_object.to_numpy()
                 bgra = cv2.cvtColor(m, cv2.COLOR_BGR2BGRA)
                 bgra_image_handle = pykinect.k4a._k4a.k4a_image_t()
